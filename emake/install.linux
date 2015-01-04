@@ -1,0 +1,81 @@
+#!/bin/bash
+
+abs_path() {
+	local path=$1
+	if [ "$path"x=="~"x ]; then
+		path=$path/
+	fi
+	echo $(cd ${path/#\~\//$HOME\/} && pwd -P)
+}
+
+read -p "Only creating a symlink(simple-mode)?(Y/n)" answer
+if [ -z $answer ]; then
+	answer="y"
+fi
+
+#
+# Obtain 'emake_script'
+#
+case $answer in 
+	"Y" | "y")
+		emake_script=$(abs_path $(dirname $0))/emake
+	;;
+	"N" | "n")
+		while [ "$path2installed"x == ""x ]; do
+			read -p "Where should files be installed for full-mode:"
+			path2installed=$(abs_path $REPLY)
+			if [ -n "$path2installed" ] && [ -e $path2installed ]; then
+				break
+				# echo copy files
+				# cp -ir * $path
+				# rm `cd $path && pwd`/install.*
+			else
+				path2installed=""
+			fi
+		done
+		emake_script=$(abs_path $path2installed)/emake
+	;;
+	*)
+		echo Invalid input && exit -1
+	;;
+esac
+
+#
+# Obtain 'target'
+#
+
+read -p "Where should emake-symlink be placed: (~/bin/)" target
+if [ -z $target ]; then
+	target=~/bin/
+fi
+target=$(abs_path $target)/emake
+
+if [ -e $target ]; then
+	echo --------ERROR--------\>\>
+	echo $target exists. && exit -1
+fi
+
+#
+# Install
+#
+if [ -n "$path2installed" ]; then
+	cp -ir $(abs_path $(dirname $0))/* $path2installed
+	rm $path2installed/install.*
+fi
+
+ln -s $emake_script $target && chmod u+x $target && echo Finish successfully.
+
+#
+# if [ -z $target ]; then
+# target=`cd ~/bin/ && pwd`/emake
+# else
+# target=`cd $target && pwd`/emake
+# fi
+#
+# if [ -e $target ]; then
+# echo `cd $(dirname $target) && pwd`/emake exists.
+# exit -1
+# else
+# ln -s `cd $(dirname $0) && pwd`/emake $target
+# chmod u+x $target
+# fi

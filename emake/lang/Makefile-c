@@ -1,0 +1,50 @@
+###########################################################
+# Makefile-c
+###########################################################
+
+objects=$(patsubst %.c,%.o,$(sources))
+depends=$(patsubst %.o,%.d,$(objects))
+
+ifeq ($(DEBUG),TRUE)
+CFLAGS+=-g
+endif
+
+ifeq ($(X64),TRUE)
+CFLAGS+=-m64
+endif
+
+ifneq ($(filter %.so,$(target)),)
+CFLAGS+=-fPic
+LDFLAGS+=-shared
+endif
+
+
+all-$(PROGRAMMING_LANGUAGE):$(depends) $(target)
+
+
+$(target):$(objects)
+ifneq ($(filter %.a,$(target)),)
+	$(AR) $(ARFLAGS) $@ $^
+else
+	$(LD) $(LDFLAGS) -o $@ $^
+endif
+
+
+sinclude $(depends)
+
+clean:
+	@for mk in $(other_makefiles); do \
+		$(MAKE) -C $$(dirname $$(mk)) || exit -1; \
+	done
+	-rm $(target) $(depends) $(objects)
+
+
+###########################################################
+# Pattern rules
+#
+
+%.d:%.c
+	$(CC) -MM $^ > $@
+
+%.o:%.c
+	$(CC) -c $< $(CFLAGS)
