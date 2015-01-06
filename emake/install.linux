@@ -16,7 +16,7 @@ fi
 #
 # Obtain 'emake_script'
 #
-case $answer in 
+case $answer in
 	"Y" | "y")
 		emake_script=$(abs_path $(dirname $0))/emake
 	;;
@@ -44,11 +44,24 @@ esac
 # Obtain 'target'
 #
 
-read -p "Where should emake-symlink be placed: (~/bin/)" target
-if [ -z $target ]; then
-	target=~/bin/
+read -p "Where should emake-symlink be placed: (~/bin/)" target_dir
+if [ -z $target_dir ]; then
+	target_dir=~/bin/
 fi
-target=$(abs_path $target)/emake
+
+if [ ! -e $target_dir ]; then
+	read -p "$target_dir does not exist, create it?(Y/n)" answer
+	case $answer in
+		"Y" | "y" | "")
+		mkdir -p $target_dir
+		;;
+		*)
+		echo "Operation cannelled" && exit -1
+		;;
+	esac
+fi
+
+target=$(abs_path $target_dir)/emake
 
 if [ -e $target ]; then
 	echo --------ERROR--------\>\>

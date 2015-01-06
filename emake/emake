@@ -3,6 +3,7 @@ import sys
 import os
 import shutil
 
+
 #####################################################################
 # Utilities for common purposes
 #
@@ -14,7 +15,6 @@ def abspath(path):
             )
         )
 
-
 #####################################################################
 # For emake
 #
@@ -23,17 +23,17 @@ EMAKE_USAGE = """
 Usage:
     emake - an utility for generating Makefile easily
 
-    SYNOPSIS - 
+    SYNOPSIS -
         emake [ACTION] [OPTIONs] ... [FILENAME_FOR_MAKEFILE]
 
-    ACTION - 
+    ACTION -
         init
             generate a Makefile named as [FILENAME_FOR_MAKEFILE]
             with [OPTIONs]
 
-    OPTIONS - 
+    OPTIONS -
         --home
-            print name of directory where 'emake' locates. 
+            print name of directory where 'emake' locates.
             Note that all other arguments are ignored as it
             given
         -l, --language......
@@ -48,6 +48,7 @@ EMAKE_HOME = None
 EMAKE_NAME = None
 EMAKE_DIR_LANG = None
 
+EMAKE_DEFAULT_MKNAME = 'Makefile'
 EMAKE_MKLANG_PREFIX = 'Makefile-'
 EMAKE_MKLANG_SUFFIX = '-option'
 
@@ -56,11 +57,17 @@ EMAKE_DEFAULT_LANGUAGE = 'c'
 class EMAKE_OPTION_TYPE:
     (SWITCH, STRING) = range(2)
 
+class EmakeError(Exception):pass
+
 emake_options = {
     "language": ("l", EMAKE_OPTION_TYPE.STRING),
 }
 
+
 def map_opt_s2l():
+    """
+    short-long Map for opts
+    """
     s2l_map = { emake_options[e][0]:e for e in emake_options.keys() }
     if '' in s2l_map.keys():
         s2l_map.pop("")
@@ -97,7 +104,7 @@ def emake_option_parse(args):
             value = True
         else:
             if short_format is False:
-                if len(kv) < 2: 
+                if len(kv) < 2:
                     errmsg = "value absent"; break
                 value = kv[1]
             else:
@@ -105,7 +112,7 @@ def emake_option_parse(args):
                     errmsg = "value absent"; break
                 i += 1
                 value = args[i]
-        
+
         options[name] = value
         i += 1
 
@@ -118,7 +125,7 @@ def emake_option_parse(args):
 
 def list_lang_supported():
     prefix = EMAKE_MKLANG_PREFIX; suffix = EMAKE_MKLANG_SUFFIX
-    
+
     langs = []
     for ef in os.listdir(EMAKE_DIR_LANG):
         if ef.startswith(prefix):
@@ -137,56 +144,53 @@ def mklo(lang):
 
 
 def expand_line(sline, dmap):
-    magic_word = "#!"
+    def getflag_idx(sline, cursor, length):
+        idx = cursor
+        while idx < length:
+            i = sline.find('|', idx)
+            if i < 0:
+                break
+            if i + 1 < length and sline[i+1] == '|':
+                idx = i + 2
+                continue
+            else:
+                return i
+        return -1
 
-    if not sline.startswith(magic_word):
+    magic_head = "#!"
+
+    if not sline.startswith(magic_head):
         return sline
 
-    result = None; var_start = -1
+    result = ''
     length = len(sline)
 
-    cur = 0
-    while True:
-        cur_flag = sline.find('|', cur)
-        if cur_flag < 0:
-            result += sline[cur:]
+    cur = 0; sflags = -1; eflags = -1
+    while cur < length:
+        sflag = getflag_idx(sline, cur, length)
+        if sflag < 0:
+            result += sline[cur:].replace('||', '|')
             break
+        result += sline[cur:sflag].replace('||', '|')
+        eflag = getflag_idx(sline, sflag+1, length)
+        if eflag < 0:
+            raise EmakeError("non-match \'|\' flag")
 
-        if var_start < 0:
-            if cur >= length:
-                raise Exception("Error format found in emake-tmpl")
-                break
+        varname = sline[sflag+1:eflag].replace('||', '|')
+        if not (varname in dmap.keys()):
+            raise EmakeError("invalid variable name")
 
-            result = ('' if result is None else result) + sline[cur:cur_flag]
-            if sline[cur_flag+1] == '|':
-                cur_flag += 1
-                result += '|'
-            else:
-                var_start = cur_flag
-        else:
-            varname = sline[var_start+1: cur_flag]
-            result += dmap[varname]
-            var_start = -1
+        result += dmap[varname]
+        cur = eflag + 1
 
-        cur = cur_flag + 1
-
-    if var_start >= 0:
-        result = None
-
-    return result[len(magic_word):].strip()
+    return result[len(magic_head):].strip()
 
 
 def emake_init(args):
-    def render_var(text, varname_value={}):
-        result = text
-        for k in varname_value.keys():
-            result = result.replace(k, varname_value[k])
-        return result
-
     options, filename = emake_option_parse(args)
 
     if filename is None:
-        filename = "Makefile"
+        filename = EMAKE_DEFAULT_MKNAME
 
     supported_langs = list_lang_supported()
 
@@ -208,11 +212,11 @@ def emake_init(args):
             ).strip()
         if lang == "":
             lang = EMAKE_DEFAULT_LANGUAGE
-        
+
         if not (lang in supported_langs):
             print("Unsupport language %s"%(lang))
             lang = None
-    
+
     mk_tmpl = os.path.join(EMAKE_HOME, 'Makefile')
     mk_lang_tmpl = os.path.join(EMAKE_DIR_LANG, mkl(lang))
     mk_lang_opt_tmpl = os.path.join(EMAKE_DIR_LANG, mklo(lang))
@@ -238,18 +242,6 @@ def emake_init(args):
             fdes.write(eline)
         fdes.close()
 
-        # content = fsrc.read()
-
-        # content = render_var(
-        #     content, {
-        #         "|lang|":       lang,
-        #         "|fileopt|":    os.path.split(mk_opt_cw)[1],
-        #     })
-
-        # with open(mk_cw, "w+") as fdes:
-        #     fdes.write(content)
-
-
     shutil.copy(mk_lang_opt_tmpl, mk_opt_cw)
 
 
@@ -273,8 +265,8 @@ if __name__=="__main__":
 
     action = sys.argv[1]
 
-    if action in emake_handlers.keys():
-        emake_handlers[action](sys.argv[2:])
-    else:
+    if not (action in emake_handlers.keys()):
         print("emake: \'%s\' is an invalid action."%(action))
         sys.exit(-1)
+
+    emake_handlers[action](sys.argv[2:])
