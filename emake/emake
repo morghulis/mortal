@@ -92,7 +92,10 @@ def emake_option_parse(args):
             kv = args[i][2:].split('=', 1)
             name = kv[0]
         else:
-            name = s2l_map[args[i][1:]]
+            short_name = args[i][1:]
+            if not (short_name in s2l_map) :
+                errmsg = "unknown option"; break
+            name = s2l_map[short_name]
             short_format = True
 
         if not (name in emake_options.keys()):
