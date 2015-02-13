@@ -1,0 +1,18 @@
+###########################################################
+# Makefile-c-options
+###########################################################
+CC=clang
+CFLAGS=-Wall -ansi -pedantic -std=c99
+
+LD=clang
+LDFLAGS=
+
+AR=ar
+ARFLAGS=crs
+
+RANLIB=ranlib
+RLFLAGS=
+
+DEBUG=TRUE
+
+X64=TRUE
