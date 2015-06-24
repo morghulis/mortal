@@ -22,6 +22,13 @@ class HtmlDOMNode(object):
         node.parent = self
         self.childs.append(node)
 
+    def __getitem__(self, key):
+        results = []
+        for node in self.childs:
+            if node.value[0] == key:
+                results.append(node)
+        return results if results != [] else None
+
 
 class HtmlDOMTree(object):
     def __init__(self, root=None):
@@ -88,6 +95,18 @@ def load(htmltext):
 
     return html_dom
 
+
+def seek(dom, pattern):
+    """
+      tagname$1.classname#idname>tagname
+    """
+    tagsdesc = pattern.split('>')
+    node = dom.root
+    for tagdesc in tagsdesc:
+        pass
+
+
+    
 
 
 # htmltext = """
