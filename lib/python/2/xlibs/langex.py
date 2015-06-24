@@ -11,4 +11,3 @@ def enum(**items):
          numbers.one = 1, numbers.two = 2
     """
     return type('enum', (object,), **items)
-
