@@ -39,7 +39,9 @@ class HtmlDOMTree(object):
 #
 # default configuration for most case
 #
-DEFAULT_SINGULAR_TAGS = ['img','br', 'meta']
+DEFAULT_SINGULAR_TAGS = [
+    'img','br', 'meta', 'input',
+]
 
 
 #
@@ -53,51 +55,60 @@ class HtmlDOM(HtmlDOMTree):
             singular_tags = DEFAULT_SINGULAR_TAGS
         self.singular_tags = singular_tags
 
-
-    def load(self, htmltext):
-        ctx = ContextDocker(curnode=self.root)
-
-        @ctx.docker
-        def do_starttag(tag, attrs):
-            print tag, attrs
-            node = HtmlDOMNode((tag, attrs))
-            ctx.curnode.addnode(node)
-            ctx.curnode = node
+    def walk(self, visit):
+        def traverse(node, visit):
+            if node.value:
+                visit(node.value)
+            for child in node.childs:
+                traverse(child, visit)
+        traverse(self.root, visit)
 
 
-        @ctx.docker
-        def do_data(data):
-            data = data.strip()
-            if data and data != '':
-                print data
+def load(html_dom, htmltext):
+    ctx = ContextDocker(curnode=html_dom.root)
+
+    @ctx.docker
+    def do_starttag(tag, attrs):
+        # print tag, attrs
+        node = HtmlDOMNode((tag, attrs))
+        ctx.curnode.addnode(node)
+        ctx.curnode = node
+
+
+    @ctx.docker
+    def do_data(data):
+        data = data.strip()
+        if (not data) or data == '':
+            return 
+        #     print data
+        # else:
+        #     print 'None'; return
+        node = HtmlDOMNode((None, data))
+        ctx.curnode.addnode(node)
+
+    @ctx.docker
+    def do_endtag(tag):
+        # print '/%s'%tag
+        while tag != ctx.curnode.value[0]:
+            if ctx.curnode.value[0] in html_dom.singular_tags:
+                ctx.curnode = ctx.curnode.parent
             else:
-                print 'None'; return
-            node = HtmlDOMNode((None, data))
-            ctx.curnode.addnode(node)
+                # print "tag:", tag
+                raise HtmlFormatError
+        ctx.curnode = ctx.curnode.parent
 
-        @ctx.docker
-        def do_endtag(tag):
-            print '/%s'%tag
-            while tag != ctx.curnode.value[0]:
-                if ctx.curnode.value[0] in self.singular_tags:
-                    ctx.curnode = ctx.curnode.parent
-                else:
-                    print "tag:", tag
-                    raise HtmlFormatError
-            ctx.curnode = ctx.curnode.parent
-
-        parser = HtmlParser(
-            starttag_rules=[do_starttag,],
-            endtag_rules=[do_endtag,], 
-            data_rules=[do_data,])
-        parser.feed(htmltext)
+    parser = HtmlParser(
+        starttag_rules=[do_starttag,],
+        endtag_rules=[do_endtag,], 
+        data_rules=[do_data,])
+    parser.feed(htmltext)
 
 
 def seek(html_dom, pattern):
     """
       tagname$1.classname#idname>tagname
-      return a node or a list of nodes matched with `pattern`
-      based on last part of pattern
+      return a node or list of nodes matched with `pattern`
+      based on last taginfo.
     """
     def getheadtail(s, seps='$.#['):
         i = 0
@@ -109,10 +120,18 @@ def seek(html_dom, pattern):
 
     node = html_dom.root; _nodes = []
     for tagdesc in pattern.split('>'):
-        print tagdesc
+        # print tagdesc
+
+        fornodes = False if '$' in tagdesc else True
+
         tag, _tail = getheadtail(tagdesc)
         if len(_nodes) > 1:
             raise HtmlInvalidPatternError
+        elif len(_nodes) == 1:
+            node = _nodes[0]
+        else:
+            pass
+
         _nodes = node[tag]
         if not _nodes:
             return None
@@ -124,15 +143,8 @@ def seek(html_dom, pattern):
             if chsep == '$':
                 if not head.isdigit():
                     raise HtmlInvalidPatternError
-
-                # def a(x):
-                #     print 'x type:', type(x)
-                #     print dir(x)
-                #     return x.__index__()==int(head)
-                # funcs.append(a)
                 funcs.append(
                     lambda x: x == _nodes[int(head)])
-
             elif chsep == '.':
                 funcs.append(
                     lambda x: ('class', head) in x.value[1])
@@ -140,7 +152,7 @@ def seek(html_dom, pattern):
                 funcs.append(
                     lambda x: ('id', head) in x.value[1])
             else:
-                print _tail[0]
+                # print _tail[0]
                 raise HtmlInvalidPatternError
         if funcs != []:
             def do_funcs(x):
@@ -149,9 +161,9 @@ def seek(html_dom, pattern):
 
         if _nodes == []:
             raise HtmlInvalidPatternError
-        node = _nodes[0]
+        # node = _nodes[0]
 
-    return _nodes if len(_nodes) > 1 else _nodes[0]
+    return _nodes if fornodes else _nodes[0]
 
 
 

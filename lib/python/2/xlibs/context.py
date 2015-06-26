@@ -6,7 +6,7 @@ class ContextDocker(object):
         self.__dict__['varspace'] = {}
         for k in kwargs.keys():
             self.__dict__['varspace'][k] = kwargs[k]
-            print 'ctx.', k, kwargs[k]
+            # print 'ctx.', k, kwargs[k]
 
     def docker(self, method):
         def wrapper(*args, **kwargs):
