@@ -22,3 +22,11 @@ class xre(object):
             return m.group(name)
         else:
             return m.group()
+
+
+    @staticmethod
+    def groupdict(pattern, text):
+        m = re.search(pattern, text)
+        if not m:
+            return None
+        return m.groupdict()
