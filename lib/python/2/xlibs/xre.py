@@ -14,8 +14,11 @@ class xre(object):
 
 
     @staticmethod
-    def group(pattern, text):
+    def group(pattern, text, name=None):
         m = re.search(pattern, text)
         if not m:
             return None
-        return m.group()
+        if name:
+            return m.group(name)
+        else:
+            return m.group()
