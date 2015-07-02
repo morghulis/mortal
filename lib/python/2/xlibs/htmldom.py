@@ -30,6 +30,10 @@ class HtmlDOMNode(object):
                 results.append(node)
         return results if results != [] else None
 
+    def traversal(self, visit=None):
+        for child in self.childs:
+            
+
 
 class HtmlDOMTree(object):
     def __init__(self, root=None):
@@ -64,7 +68,7 @@ class HtmlDOM(HtmlDOMTree):
         traverse(self.root, visit)
 
 
-def load(html_dom, htmltext):
+def htmldom_load(html_dom, htmltext):
     ctx = ContextDocker(curnode=html_dom.root)
 
     @ctx.docker
@@ -104,7 +108,7 @@ def load(html_dom, htmltext):
     parser.feed(htmltext)
 
 
-def seek(html_dom, pattern):
+def htmldom_seek(html_dom, pattern):
     """
       tagname$1.classname#idname>tagname
       return a node or list of nodes matched with `pattern`
