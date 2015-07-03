@@ -32,7 +32,10 @@ class HtmlDOMNode(object):
 
     def traversal(self, visit=None):
         for child in self.childs:
-            
+            visit(child)
+            if child.value and child.value[0]:
+                child.traversal(visit)
+                
 
 
 class HtmlDOMTree(object):
@@ -107,8 +110,10 @@ def htmldom_load(html_dom, htmltext):
         data_rules=[do_data,])
     parser.feed(htmltext)
 
+    return html_dom
 
-def htmldom_seek(html_dom, pattern):
+
+def htmldom_seek(html_dom_root, pattern):
     """
       tagname$1.classname#idname>tagname
       return a node or list of nodes matched with `pattern`
@@ -122,7 +127,7 @@ def htmldom_seek(html_dom, pattern):
             i += 1
         return (s[:i], s[i:])
 
-    node = html_dom.root; _nodes = []
+    node = html_dom_root; _nodes = []
     for tagdesc in pattern.split('>'):
         # print tagdesc
 
