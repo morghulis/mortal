@@ -1,4 +1,8 @@
 # -*- coding:utf -*-
+import sys, os
+
+sys.path.append(os.path.abspath('../'))
+
 from htmlparser import HtmlParser
 from context import ContextDocker
 
@@ -30,12 +34,13 @@ class HtmlDOMNode(object):
                 results.append(node)
         return results if results != [] else None
 
-    def traversal(self, visit=None):
+    def traversal(self, visit, on_finish_allchilds=None):
+        visit(self)
         for child in self.childs:
-            visit(child)
-            if child.value and child.value[0]:
-                child.traversal(visit)
-                
+            child.traversal(visit, on_finish_allchilds)
+        if on_finish_allchilds:
+            on_finish_allchilds(self)
+
 
 
 class HtmlDOMTree(object):
@@ -62,13 +67,13 @@ class HtmlDOM(HtmlDOMTree):
             singular_tags = DEFAULT_SINGULAR_TAGS
         self.singular_tags = singular_tags
 
-    def walk(self, visit):
-        def traverse(node, visit):
-            if node.value:
-                visit(node.value)
-            for child in node.childs:
-                traverse(child, visit)
-        traverse(self.root, visit)
+    def walk(self, visit, on_finish_allchilds=None):
+        # def traverse(node, visit):
+        #     if node.value:
+        #         visit(node.value)
+        #     for child in node.childs:
+        #         traverse(child, visit)
+        traverse(self.root, visit, on_finish_allchilds)
 
 
 def htmldom_load(html_dom, htmltext):
@@ -161,7 +166,6 @@ def htmldom_seek(html_dom_root, pattern):
                 funcs.append(
                     lambda x: ('id', head) in x.value[1])
             else:
-                # print _tail[0]
                 raise HtmlInvalidPatternError
         if funcs != []:
             def do_funcs(x):
@@ -170,24 +174,62 @@ def htmldom_seek(html_dom_root, pattern):
 
         if _nodes == []:
             raise HtmlInvalidPatternError
-        # node = _nodes[0]
 
     return _nodes if fornodes else _nodes[0]
 
 
 
+def htmldom_dump(html_dom_root):
+    ctx = ContextDocker(htmltext=[])
+    @ctx.docker
+    def visit(node):
+        if node.value:
+            if not node.value[0]:
+                ctx.htmltext.append(node.value[1])
+            else:
+                tag = node.value[0]; attrs = node.value[1]
 
-# htmltext = """
-# <!doctype html>
-#     <html>
+                attrmsg = ' '.join(
+                    [ '%s=\"%s\"'%(attr[0], attr[1]) for attr in attrs ])
+                ctx.htmltext.append(
+                    '<%s>'%(
+                        ' '.join([tag, attrmsg]).strip()
+                        )
+                    )
 
-#     <head>
-#     <meta charset="utf-8">
-#     </head>
-#     <body>
-#         x
-#         <li>a</li>
-#         <li>b</li>
-#     </body>
-#     </html>
-# """
+    @ctx.docker
+    def on_finish_allchilds(node):
+        if node.value and node.value[0]:
+            tag = node.value[0]
+            if tag in DEFAULT_SINGULAR_TAGS and len(node.childs) == 0:
+                return
+            ctx.htmltext.append('</%s>'%node.value[0])
+
+    html_dom_root.traversal(visit, on_finish_allchilds)
+    return ''.join(ctx.htmltext)
+
+
+
+
+htmltext = """
+<!doctype html>
+    <html>
+
+    <head>
+    <meta charset="utf-8">
+    </head>
+    <body>
+    y
+       <br><img src=''> x
+        <li>a</li>
+        <li>b</li>
+    </body>
+    </html>
+"""
+
+if __name__=='__main__':
+
+    html_dom = HtmlDOM()
+    htmldom_load(html_dom, htmltext)
+
+    print htmldom_dump(html_dom.root)
