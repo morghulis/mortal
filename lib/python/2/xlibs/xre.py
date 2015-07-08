@@ -30,3 +30,8 @@ class xre(object):
         if not m:
             return None
         return m.groupdict()
+
+
+    @staticmethod
+    def findall(pattern, text, flags=0):
+        return re.findall(pattern, text, flags)
