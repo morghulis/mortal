@@ -35,3 +35,9 @@ class HtmlParser(HTMLParser):
 
     def handle_data(self, data):
         self.apply_all_rules('data', data)
+
+    @staticmethod
+    def new_attrs(attrs, key, value):
+        d = dict(attrs)
+        d[key] = value
+        return tuple(d)
