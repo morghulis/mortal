@@ -35,7 +35,9 @@ class HtmlDOMNode(object):
         return results if results != [] else None
 
     def traversal(self, visit, on_finish_allchilds=None):
-        visit(self)
+        if not visit(self):
+            return
+            
         for child in self.childs:
             child.traversal(visit, on_finish_allchilds)
         if on_finish_allchilds:
