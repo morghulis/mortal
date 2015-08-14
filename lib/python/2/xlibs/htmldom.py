@@ -35,11 +35,9 @@ class HtmlDOMNode(object):
         return results if results != [] else None
 
     def traversal(self, visit, on_finish_allchilds=None):
-        if not visit(self):
-            return
-            
-        for child in self.childs:
-            child.traversal(visit, on_finish_allchilds)
+        if visit(self):
+            for child in self.childs:
+                child.traversal(visit, on_finish_allchilds)
         if on_finish_allchilds:
             on_finish_allchilds(self)
 
@@ -91,8 +89,8 @@ def htmldom_load(html_dom, htmltext):
 
     @ctx.docker
     def do_data(data):
-        data = data.strip()
-        if (not data) or data == '':
+        # data = data.strip()
+        if (not data) or data.strip() == '':
             return 
         #     print data
         # else:
@@ -111,10 +109,24 @@ def htmldom_load(html_dom, htmltext):
                 raise HtmlFormatError
         ctx.curnode = ctx.curnode.parent
 
+    @ctx.docker
+    def do_charref(name):
+        node = HtmlDOMNode((None, '&%s;'%name))
+        ctx.curnode.addnode(node)
+
+    @ctx.docker
+    def do_entityref(name):
+        node = HtmlDOMNode((None, '&%s;'%name))
+        ctx.curnode.addnode(node)
+
+
+
     parser = HtmlParser(
         starttag_rules=[do_starttag,],
         endtag_rules=[do_endtag,], 
-        data_rules=[do_data,])
+        data_rules=[do_data,],
+        charref_rules=[do_charref,],
+        entityref_rules=[do_entityref,],)
     parser.feed(htmltext)
 
     return html_dom
