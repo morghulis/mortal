@@ -15,7 +15,7 @@ def split(url):
     host_port, location = _rest.split('/', 1)
 
     hp = host_port.split(':')
-    hostname = hp[0].lower()
+    host = hp[0].lower()
     port = int(hp[1]) if len(hp) > 1 else _DEFAULT_PORTS[proto]
 
     return (proto, host, port, location)
