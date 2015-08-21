@@ -21,7 +21,7 @@ def split(url):
     return (proto, host, port, location)
 
 
-def isabs(url):
+def is_absurl(url):
     return len(url.split('://', 1)) > 1
 
 
@@ -29,14 +29,21 @@ def absurl(url, refer_url):
     if url == '':
         return refer_url
 
-    if isabs(url):
+    if is_absurl(url):
         return url
 
     proto, host, port, location = split(refer_url)
+
+    if _DEFAULT_PORTS[proto] == port:
+        host_port = host
+    else:
+        host_port = '%s:%d'%(host, port)
+
+
     if url[0] == '/':
-        return '%s://%s:%d/%s'%(proto, host, port, url[1:])
+        return '%s://%s/%s'%(proto, host_port, url[1:])
 
     else:
-        return '%s://%s:%d/%s/%s'%(
-            proto, host, port, 
+        return '%s://%s/%s/%s'%(
+            proto, host_port, 
             refer_url.rsplit('/', 1)[0], url)
