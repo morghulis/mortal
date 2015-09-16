@@ -53,3 +53,20 @@ class HtmlParser(HTMLParser):
         d = dict(attrs)
         d[key] = value
         return tuple(d)
+
+
+class PseudoAttrsdict(object):
+    def __init__(self, attrs):
+        self.attrs = attrs
+
+    def __getitem__(self, name):
+        for attr in self.attrs:
+            if attr[0] == name:
+                return attr[1]
+        raise KeyError, name
+
+    def get(self, name, default_value=None):
+        try:
+            return self.__getitem__(name)
+        except KeyError:
+            return default_value
