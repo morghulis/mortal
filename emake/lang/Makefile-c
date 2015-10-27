@@ -14,7 +14,7 @@ CFLAGS+=-m64
 endif
 
 ifneq ($(filter %.so,$(target)),)
-CFLAGS+=-fPic
+CFLAGS+=-fPIC
 LDFLAGS+=-shared
 endif
 
