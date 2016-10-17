@@ -1,0 +1,20 @@
+###########################################################
+#! set MAKEFILE_NAME makefile_name
+###########################################################
+#! set PROGRAMMING_LANGUAGE lang
+
+EMAKE_HOME=$(shell emake display --home)
+PROJECT_HOME=$(cd . && pwd)
+
+MAKE=make
+
+all:PREMAKE all-$(PROGRAMMING_LANGUAGE) ;
+
+PREMAKE:
+	@for mk in $(wildcard $(OTHER_MAKEFILES)); do \
+		$(MAKE) -C $$(dirname $${mk}) -f $$(basename $${mk}) || exit -1; \
+	done
+
+
+include $(MAKEFILE_NAME).def
+include $(EMAKE_HOME)/lang/Makefile-$(PROGRAMMING_LANGUAGE)

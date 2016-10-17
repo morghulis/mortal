@@ -1,0 +1,97 @@
+#!/bin/bash
+emake_home=$(cd $(dirname $(realpath $0)) && pwd)
+project_home=$(pwd)
+
+. ${emake_home}/emake.inc
+
+usage_text="Usage:
+	emake new -l c makefile
+"
+
+option_table="
+	lang?:--language -l;
+"
+
+print_usage(){
+	echo "$usage_text"
+}
+
+new_makefile(){
+	echo "Creating a Makefile..."
+
+	parse_params $@
+
+    if [[ -z $makefile_name ]]; then
+        makefile_name="Makefile"
+    fi
+
+	local mk_dir=$(dirname $makefile_name)
+	local mk_name=$(basename $makefile_name)
+	if [[ $mk_dir != \. ]]; then
+		project_home=$project_home/$mk_dir
+		makefile_name=mk_name
+	fi
+
+	mktmpl=${emake_home}/Makefile.tmpl
+	mkproj=${project_home}/$makefile_name
+	if [[ -f $mkproj ]]; then
+		truncate --size 0 $mkproj
+	fi
+
+    local oifs=$IFS
+    IFS=
+    while read -r LINE
+	do
+        if [[ $LINE == \#!* ]]; then 
+            LINE=$(render "$LINE")
+            if [[ -z $LINE ]]; then
+                continue
+            fi
+        fi
+		echo "$LINE" >> $project_home/$makefile_name
+	done < $mktmpl
+    IFS=$oifs
+
+	echo "Done."
+}
+
+display_information(){
+	if [ $# -lt 1 ]; then
+		echo "operand(s) missing."; exit -1
+	fi
+
+	case $1 in
+		"--home"|"-h")
+			echo ${emake_home}
+			;;
+		*)
+			echo "unknown oprand(s): $@"; exit -1
+			;;
+	esac
+}
+
+bash_execute(){
+	if [ $# -eq 0 ]; then
+		action="help"
+	else
+		action=$1; shift
+	fi
+
+	case $action in
+		"help")
+			print_usage
+			;;
+		"new")
+			new_makefile $@
+			;;
+		"display"|"disp")
+			display_information $@
+			;;
+		*)
+			echo "Invalid action:$action"; exit -1
+			;;
+	esac
+}
+
+bash_execute $@
+
